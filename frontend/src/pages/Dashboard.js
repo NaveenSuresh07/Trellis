@@ -25,6 +25,7 @@ import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import MiniLeaderboard from '../components/MiniLeaderboard';
 import DailyGoals from '../components/DailyGoals';
+import { API_BASE_URL } from '../apiConfig';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -49,7 +50,7 @@ const Dashboard = () => {
             if (!token) return;
 
             try {
-                const res = await axios.get('http://localhost:5000/api/auth/me', {
+                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': token }
                 });
                 setUser(res.data);
@@ -60,13 +61,16 @@ const Dashboard = () => {
                 }
                 if (res.data.currentSectionId) {
                     const localS = parseInt(localStorage.getItem('selectedSectionId'));
-                    if (localS && localS !== res.data.currentSectionId) {
-                        // If DB is behind Local, keep Local focus but DON'T overwrite Local yet
-                        console.log(`[SYNC] Preserved local section S:${localS} (Database returned S:${res.data.currentSectionId})`);
-                        setCurrentSectionId(localS);
+                    const dbSCount = res.data.currentSectionId || 1;
+
+                    // SYNC Logic: If DB is strictly AHEAD of local focus, always follow DB to prevent stuck states
+                    if (dbSCount > localS) {
+                        console.log(`[SYNC -> FOCUS] Advancing local focus to match DB S:${dbSCount} (was S:${localS})`);
+                        setCurrentSectionId(dbSCount);
+                        localStorage.setItem('selectedSectionId', dbSCount);
                     } else {
-                        setCurrentSectionId(res.data.currentSectionId);
-                        localStorage.setItem('selectedSectionId', res.data.currentSectionId);
+                        // Otherwise keep local focus (user might be reviewing old content)
+                        setCurrentSectionId(localS || dbSCount);
                     }
                 }
             } catch (err) {
@@ -104,51 +108,52 @@ const Dashboard = () => {
         j.courseId && j.courseId.toLowerCase().trim() === currentCourseId.toLowerCase().trim()
     );
     const courseProgress = courseJourney?.progress || 0;
-    const focusSectionId = courseJourney?.currentSectionId || 1;
-    const maxSectionId = courseJourney?.maxSectionId || focusSectionId;
+
+    // SOURCE OF TRUTH: The active focus is our main state 'currentSectionId'
+    // but we use the journey's maxSectionId to determine mastery.
+    const maxSectionId = courseJourney?.maxSectionId || courseJourney?.currentSectionId || 1;
 
     // Is the user viewing a section they already finished?
     const isSectionAlreadyMastered = maxSectionId > currentSectionId;
     const isSectionCompleted = isSectionAlreadyMastered || (courseProgress >= learningPath.length);
 
     const handleCompleteSection = async () => {
-        console.log("[DEBUG] handleCompleteSection called. isSectionCompleted:", isSectionCompleted);
-        if (!isSectionCompleted || isClaiming || isSectionAlreadyMastered) return;
+        // ALLOW advancement if section is mastered OR progress is full
+        if (!isSectionCompleted || isClaiming) return;
 
         setIsClaiming(true);
         const token = localStorage.getItem('token');
-        if (!token) {
-            console.error("[DEBUG] No token found in localStorage");
-            setIsClaiming(false);
-            return;
-        }
+        if (!token) return;
 
         try {
-            console.log("[DEBUG] Sending section completion request for course:", currentCourseId);
-            const res = await axios.patch('http://localhost:5000/api/auth/progress', {
+            console.log("[NAV] Advancing to next section for:", currentCourseId);
+            const res = await axios.patch(`${API_BASE_URL}/api/auth/progress`, {
                 currentCourse: currentCourseId,
                 completeSection: true
             }, {
                 headers: { 'x-auth-token': token }
             });
-            console.log("[DEBUG] Section completion response:", res.data);
 
             const updatedUser = res.data;
-            setUser(updatedUser);
-            setCurrentSectionId(updatedUser.currentSectionId);
-            localStorage.setItem('selectedSectionId', updatedUser.currentSectionId);
 
-            console.log("[DEBUG] Successfully updated user. Forcing Hard Reset.");
-
-            // HARD RESET: Clear transients and force fresh load from root
+            // Update state smoothly
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                setUser(updatedUser);
+                setCurrentSectionId(updatedUser.currentSectionId);
+                localStorage.setItem('selectedSectionId', updatedUser.currentSectionId);
+                setIsClaiming(false);
+
+                // Scroll to top of the path for the new section
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Optional: Force a slight delay before allowing next interaction
+                console.log("[NAV] Successfully transitioned to Section", updatedUser.currentSectionId);
             }, 1000);
+
         } catch (err) {
-            console.error("[DEBUG] Error completing section:", err.response?.data || err.message);
+            console.error("Navigation error:", err);
             setIsClaiming(false);
-            // Only alert on ACTUAL failure
-            alert(err.response?.data?.msg || "Failed to claim reward. Please try again!");
+            alert("Connection error. Please try again!");
         }
     };
 
@@ -382,7 +387,7 @@ const JourneysSection = ({ enrolledJourneys = [], currentCourseId }) => {
         const token = localStorage.getItem('token');
         if (token) {
             try {
-                await axios.patch('http://localhost:5000/api/auth/progress',
+                await axios.patch(`${API_BASE_URL}/api/auth/progress`,
                     { currentCourse: courseId, currentSectionId: sectionId || 1 },
                     { headers: { 'x-auth-token': token } }
                 );
@@ -406,10 +411,28 @@ const JourneysSection = ({ enrolledJourneys = [], currentCourseId }) => {
 
             <div className="space-y-2 max-h-[200px] overflow-y-auto invisible-scrollbar pr-1">
                 {enrolledJourneys.length > 0 ? enrolledJourneys.map((journey) => {
-                    const courseInfo = courseData[journey.courseId] || { title: journey.courseId };
-                    const isActive = journey.courseId === currentCourseId;
-                    const totalLessons = courseInfo.sections?.reduce((acc, s) => acc + s.lessons.length, 0) || 10;
-                    const progressPercent = Math.min(100, (journey.progress / totalLessons) * 100);
+                    const courseKey = (journey.courseId || "").toLowerCase();
+                    const courseInfo = courseData[courseKey] || { title: journey.courseId };
+                    const isActive = courseKey === currentCourseId.toLowerCase();
+
+                    // ACCURATE PROGRESS: Total lessons across ALL sections
+                    const allSections = courseInfo.sections || [];
+                    const totalLessonsInCourse = allSections.reduce((acc, s) => acc + (s.lessons?.length || 0), 0);
+
+                    // Completed lessons = (lessons in previous sections) + current progress in active section
+                    let lessonsFinished = 0;
+                    for (const section of allSections) {
+                        if (section.id < journey.currentSectionId) {
+                            lessonsFinished += (section.lessons?.length || 0);
+                        } else if (section.id === journey.currentSectionId) {
+                            lessonsFinished += (journey.progress || 0);
+                            break;
+                        }
+                    }
+
+                    const progressPercent = totalLessonsInCourse > 0
+                        ? Math.min(100, Math.round((lessonsFinished / totalLessonsInCourse) * 100))
+                        : 0;
 
                     return (
                         <button
@@ -422,9 +445,9 @@ const JourneysSection = ({ enrolledJourneys = [], currentCourseId }) => {
                                 }`}
                         >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm italic shadow-lg text-white shrink-0
-                                ${journey.courseId === 'python' ? 'bg-blue-600' :
-                                    journey.courseId === 'html' ? 'bg-orange-600' :
-                                        journey.courseId === 'javascript' ? 'bg-yellow-600' : 'bg-slate-700'}
+                                ${courseKey === 'python' ? 'bg-blue-600' :
+                                    courseKey === 'html' ? 'bg-orange-600' :
+                                        courseKey === 'javascript' ? 'bg-yellow-600' : 'bg-slate-700'}
                             `}>
                                 {journey.courseId.charAt(0).toUpperCase()}
                             </div>
@@ -433,10 +456,10 @@ const JourneysSection = ({ enrolledJourneys = [], currentCourseId }) => {
                                     <span className="font-bold italic uppercase text-xs tracking-tight text-white truncate px-1">
                                         {courseInfo.title || journey.courseId}
                                     </span>
-                                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,1)]" />}
+                                    <span className="text-[8px] font-black text-slate-500">{progressPercent}%</span>
                                 </div>
                                 <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+                                    <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
                                 </div>
                             </div>
                         </button>

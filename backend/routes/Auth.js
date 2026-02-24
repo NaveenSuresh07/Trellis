@@ -164,6 +164,35 @@ router.get('/me', auth, async (req, res) => {
             $set: { lastActivity: now, unlockedTitles: finalTitles }
         };
 
+        // --- STREAK & DAILY RESET LOGIC (Moved to /me for robust tracking) ---
+        const lastAct = user.lastActivity ? new Date(user.lastActivity) : null;
+        if (!lastAct) {
+            updateOps.$set.streak = 1;
+            updateOps.$set.exercisesCompletedToday = 0;
+            updateOps.$set.firstTrySolves = 0;
+            updateOps.$set.summariesToday = 0;
+            updateOps.$set.xpToday = 0;
+            updateOps.$set.sectionsMasteredToday = 0;
+        } else {
+            const isToday = lastAct.toDateString() === now.toDateString();
+            const isYesterday = new Date(new Date(now).setDate(now.getDate() - 1)).toDateString() === lastAct.toDateString();
+
+            if (!isToday) {
+                // It's a new day! Reset counters
+                updateOps.$set.exercisesCompletedToday = 0;
+                updateOps.$set.firstTrySolves = 0;
+                updateOps.$set.summariesToday = 0;
+                updateOps.$set.xpToday = 0;
+                updateOps.$set.sectionsMasteredToday = 0;
+
+                if (isYesterday) {
+                    updateOps.$inc = { ...updateOps.$inc, streak: 1 };
+                } else {
+                    updateOps.$set.streak = 1; // Streak broken, restart at 1
+                }
+            }
+        }
+
         if (changed || selected !== user.selectedTitle) {
             updateOps.$set.selectedTitle = selected;
         }
@@ -203,27 +232,29 @@ router.get('/me', auth, async (req, res) => {
                 const flatP = user.progress || 0;
                 const journeyS = journey.currentSectionId || 1;
                 const journeyP = journey.progress || 0;
-                const currentMax = journey.maxSectionId || journeyS || 1;
+                const journeyMax = journey.maxSectionId || journeyS || 1;
 
-                // Sync Case 1: Flat progress is ADVANCED (capture new accomplishments)
-                const isFlatNewer = (flatS > journeyS) || (flatS === journeyS && flatP > journeyP);
-                if (isFlatNewer) {
+                // Sync Case 1: Backend Journey shows MORE progress - FOLLOW backend
+                if (journeyMax > flatS || (journeyS === flatS && journeyP > flatP)) {
+                    updateOps.$set.currentSectionId = journeyS;
+                    updateOps.$set.progress = journeyP;
+                    repairNeeded = true;
+                    console.log(`[SYNC -> GLOBAL] Recovered ${user.username} - ${currentNorm} to S:${journeyS} P:${journeyP} (Max: ${journeyMax})`);
+                }
+                // Sync Case 2: Local Flat is NEWER - UPDATE backend record
+                else if (flatS > journeyS || (flatS === journeyS && flatP > journeyP)) {
                     normalizedJourneys[jIndex].currentSectionId = flatS;
                     normalizedJourneys[jIndex].progress = flatP;
-                    normalizedJourneys[jIndex].maxSectionId = Math.max(currentMax, flatS);
+                    normalizedJourneys[jIndex].maxSectionId = Math.max(journeyMax, flatS);
                     repairNeeded = true;
-                    console.log(`[SYNC -> JOURNEY] Updating ${user.username} - ${currentNorm} to S:${flatS} P:${flatP}`);
+                    console.log(`[SYNC -> JOURNEY] Updating Record for ${user.username} - ${currentNorm} to S:${flatS} P:${flatP}`);
                 }
-                // Sync Case 2: Journey is ADVANCED but flat is LOW (e.g. course switch back)
-                // We DON'T force flat fields forward automatically to allow revisited jump-backs,
-                // BUT we must ensure the top-level 'currentSectionId' is at least VALID for the journey.
-                // This is mostly handled by Course Switching logic in PATCH /progress.
             }
         }
 
         if (repairNeeded) {
             updateOps.$set.enrolledJourneys = normalizedJourneys;
-            console.log(`[REPAIR] Committed normalized journeys for ${user.username}`);
+            console.log(`[REPAIR] Committed normalized/synced journeys for ${user.username}`);
         }
 
         // ONE-TIME BACKFILL for activity days visualization
@@ -267,22 +298,23 @@ router.patch('/progress', auth, async (req, res) => {
         const lastAct = user.lastActivity ? new Date(user.lastActivity) : null;
         if (!lastAct) {
             updateOps.$set.streak = 1;
-            updateOps.$set.exercisesCompletedToday = 0;
-            updateOps.$set.firstTrySolves = 0;
-            updateOps.$set.summariesToday = 0;
-            updateOps.$set.xpToday = 0;
-            updateOps.$set.sectionsMasteredToday = 0;
         } else {
             const isToday = lastAct.toDateString() === now.toDateString();
-            const isYesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toDateString() === lastAct.toDateString();
+            const isYesterday = new Date(new Date(now).setDate(now.getDate() - 1)).toDateString() === lastAct.toDateString();
+
             if (!isToday) {
+                // Counters reset
                 updateOps.$set.exercisesCompletedToday = 0;
                 updateOps.$set.firstTrySolves = 0;
                 updateOps.$set.summariesToday = 0;
                 updateOps.$set.xpToday = 0;
                 updateOps.$set.sectionsMasteredToday = 0;
-                if (isYesterday) updateOps.$inc.streak = 1;
-                else updateOps.$set.streak = 1;
+
+                if (isYesterday) {
+                    updateOps.$inc = { ...updateOps.$inc, streak: 1 };
+                } else {
+                    updateOps.$set.streak = 1;
+                }
             }
         }
 
@@ -301,7 +333,8 @@ router.patch('/progress', auth, async (req, res) => {
             const jIndex = findJourneyIndex(currentCourse);
             if (jIndex > -1) {
                 const journey = user.enrolledJourneys[jIndex];
-                const nxt = (journey.currentSectionId || 1) + 1;
+                const currentS = journey.currentSectionId || 1;
+                const nxt = currentS + 1;
                 const newMax = Math.max(journey.maxSectionId || 1, nxt);
 
                 updateOps.$inc.xp = (updateOps.$inc.xp || 0) + 100;
@@ -311,11 +344,16 @@ router.patch('/progress', auth, async (req, res) => {
                 updateOps.$set[`enrolledJourneys.${jIndex}.currentSectionId`] = nxt;
                 updateOps.$set[`enrolledJourneys.${jIndex}.maxSectionId`] = newMax;
                 updateOps.$set[`enrolledJourneys.${jIndex}.progress`] = 0;
+
+                // Global sync
                 updateOps.$set.currentSectionId = nxt;
                 updateOps.$set.progress = 0;
                 updateOps.$set.currentCourse = journey.courseId;
+
+                console.log(`[SECTION COMPLETE] User: ${user.username}, Course: ${currentCourse}, NewSection: ${nxt}`);
             }
-        } else if (currentCourse) {
+        }
+        else if (currentCourse) {
             const jIndex = findJourneyIndex(currentCourse);
             const normalized = currentCourse.toLowerCase();
 

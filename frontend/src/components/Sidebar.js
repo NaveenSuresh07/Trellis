@@ -26,9 +26,14 @@ const Sidebar = () => {
 
             <nav className="flex flex-col gap-6">
                 <NavItem
-                    icon={<Map className="w-6 h-6" />}
+                    icon={<LayoutGrid className="w-6 h-6" />}
                     active={isActive('/dashboard')}
                     onClick={() => navigate('/dashboard')}
+                />
+                <NavItem
+                    icon={<Map className="w-6 h-6" />}
+                    active={isActive('/journeys')}
+                    onClick={() => navigate('/journeys')}
                 />
                 <NavItem
                     icon={<Sparkles className="w-6 h-6" />}

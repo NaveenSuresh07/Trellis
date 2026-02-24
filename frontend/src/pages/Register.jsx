@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, Lock, Github, Chrome, Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -18,12 +19,12 @@ const Register = () => {
 
     const handleGoogleLogin = () => {
         // Redirect to Backend Google Auth Route
-        window.location.href = 'http://localhost:5000/api/auth/google';
+        window.location.href = `${API_BASE_URL}/api/auth/google`;
     };
 
     const handleGithubLogin = () => {
         // Redirect to Backend Github Auth Route
-        window.location.href = 'http://localhost:5000/api/auth/github';
+        window.location.href = `${API_BASE_URL}/api/auth/github`;
     };
 
     const handleSubmit = async (e) => {
@@ -40,7 +41,7 @@ const Register = () => {
                 onboardingCommitment: onboardingData.commitment
             };
 
-            const res = await axios.post('http://127.0.0.1:5000/api/auth/register', finalData);
+            const res = await axios.post(`${API_BASE_URL}/api/auth/register`, finalData);
             if (res.data.token) {
                 localStorage.setItem('token', res.data.token);
                 navigate('/select-skills', { state: { user: res.data.user } });

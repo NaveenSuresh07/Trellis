@@ -17,6 +17,7 @@ import Lesson from './pages/Lesson';
 import Summarizer from './pages/Summarizer';
 import SkillSelection from './pages/SkillSelection';
 import Nexus from './pages/Nexus';
+import NexusWorkspace from './pages/NexusWorkspace';
 import Leaderboard from './pages/Leaderboard';
 import Settings from './pages/Settings';
 import CommunityHub from './pages/CommunityHub';
@@ -44,6 +45,7 @@ function App() {
         <Route path="/summarizer" element={<Summarizer />} />
         <Route path="/select-skills" element={<SkillSelection />} />
         <Route path="/nexus" element={<Nexus />} />
+        <Route path="/nexus/workspace/:peerId" element={<NexusWorkspace />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/community" element={<CommunityHub />} />

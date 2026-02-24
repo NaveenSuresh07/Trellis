@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Zap, GraduationCap, Code2, Send, Search, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Zap, GraduationCap, Code2, Send, Search, Filter, Pencil } from 'lucide-react';
 import axios from 'axios';
 import Sidebar from '../components/Sidebar';
+import { API_BASE_URL } from '../apiConfig';
 
 const Nexus = () => {
+    const navigate = useNavigate();
     const [peers, setPeers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -13,7 +16,7 @@ const Nexus = () => {
         const fetchPeers = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await axios.get('http://127.0.0.1:5000/api/matchmaking/peers', {
+                const res = await axios.get(`${API_BASE_URL}/api/matchmaking/peers`, {
                     headers: { 'x-auth-token': token }
                 });
                 setPeers(res.data);
@@ -39,14 +42,19 @@ const Nexus = () => {
                 <div className="max-w-6xl mx-auto">
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6 bg-[#1e293b]/50 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-xl">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-500/20 rounded-xl">
                                     <Users className="text-blue-400 w-6 h-6" />
                                 </div>
                                 <h1 className="text-3xl font-black tracking-tight">The Nexus</h1>
                             </div>
-                            <p className="text-slate-400 font-medium">Connecting you with peers who teach what you need.</p>
+                            <button
+                                onClick={() => navigate('/select-skills')}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest text-blue-400 transition-all hover:scale-105 active:scale-95 w-fit"
+                            >
+                                <Pencil className="w-3 h-3" /> Update My Skills
+                            </button>
                         </div>
 
                         <div className="relative group min-w-[300px]">
@@ -70,11 +78,11 @@ const Nexus = () => {
                     ) : filteredPeers.length === 0 ? (
                         <div className="text-center py-20 bg-[#1e293b]/30 rounded-[3rem] border border-dashed border-white/10">
                             <Users className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-slate-500">No peers found yet</h3>
-                            <p className="text-slate-600 mt-2">Try updating your skills or check back later!</p>
+                            <h3 className="text-xl font-bold text-slate-500">No matches found yet</h3>
+                            <p className="text-slate-600 mt-2">Try adding your Expertise and Needs in Settings!</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
                             <AnimatePresence>
                                 {filteredPeers.map((peer, idx) => (
                                     <motion.div
@@ -82,18 +90,26 @@ const Nexus = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05 }}
-                                        className="bg-[#1e293b] border border-white/5 rounded-[2.5rem] p-6 hover:border-blue-500/30 transition-all group relative overflow-hidden flex flex-col justify-between h-full"
+                                        className={`bg-[#1e293b] border rounded-[2.5rem] p-6 transition-all group relative overflow-hidden flex flex-col justify-between h-full
+                                            ${peer.isPerfectMatch ? 'border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.1)]' : 'border-white/5 hover:border-blue-500/30'}
+                                        `}
                                     >
                                         {/* Match Badge */}
-                                        {peer.matchScore > 1 && (
-                                            <div className="absolute top-4 right-4 bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20 backdrop-blur-md">
-                                                {peer.matchScore}x Match
+                                        {peer.isPerfectMatch ? (
+                                            <div className="absolute top-4 right-4 bg-amber-500 text-black px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-400/50 animate-pulse">
+                                                PERFECT MATCH
                                             </div>
-                                        )}
+                                        ) : peer.matchScore > 1 ? (
+                                            <div className="absolute top-4 right-4 bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20 backdrop-blur-md">
+                                                {peer.matchScore}x Multi-Match
+                                            </div>
+                                        ) : null}
 
                                         <div>
                                             <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg shadow-blue-900/40">
+                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg
+                                                    ${peer.isPerfectMatch ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-900/40' : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/40'}
+                                                `}>
                                                     {peer.username[0].toUpperCase()}
                                                 </div>
                                                 <div>
@@ -108,17 +124,25 @@ const Nexus = () => {
                                             </div>
 
                                             <div className="space-y-4">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {peer.skillsToTeach.map(s => (
-                                                        <span key={s} className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                                                            <GraduationCap className="w-3 h-3" /> {s}
-                                                        </span>
-                                                    ))}
-                                                    {peer.skillsToLearn.map(s => (
-                                                        <span key={s} className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                                                            <Code2 className="w-3 h-3" /> {s}
-                                                        </span>
-                                                    ))}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Expertise:</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {peer.skillsToTeach.map(s => (
+                                                            <span key={s} className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                <GraduationCap className="w-3 h-3" /> {s}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Needs Help With:</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {peer.skillsToLearn.map(s => (
+                                                            <span key={s} className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                                                <Code2 className="w-3 h-3" /> {s}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -126,7 +150,7 @@ const Nexus = () => {
                                         <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                                             <div className="flex gap-4">
                                                 <div>
-                                                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Level</p>
+                                                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Lv.</p>
                                                     <p className="text-xs font-bold text-blue-400">{Math.floor(peer.xp / 1000) + 1}</p>
                                                 </div>
                                                 <div>
@@ -135,8 +159,12 @@ const Nexus = () => {
                                                 </div>
                                             </div>
 
-                                            <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-2">
-                                                Send Request <Send className="w-3 h-3" />
+                                            <button
+                                                onClick={() => navigate(`/nexus/workspace/${peer._id}`)}
+                                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-2
+                                                ${peer.isPerfectMatch ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-blue-600 text-white hover:bg-blue-500'}
+                                            `}>
+                                                Collaborate <Send className="w-3 h-3" />
                                             </button>
                                         </div>
                                     </motion.div>

@@ -5,6 +5,7 @@ const { PDFParse } = require('pdf-parse');
 const officeparser = require('officeparser');
 const axios = require('axios');
 const auth = require('../middleware/auth');
+const User = require('../models/User');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -55,8 +56,10 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
         // Gemini AI Summarization via axios/v1beta
         try {
-            console.log(`Action: Running Axios Summarize (gemini-2.5-flash)`);
-            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
+            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+
+            console.log(`Action: Running Axios Summarize (gemini-flash-latest)`);
 
             const formatInstruction = format === 'Bullets'
                 ? 'Use ONLY bullet points for the summary.'
@@ -87,12 +90,13 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
             });
 
             if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                const summaryText = response.data.candidates[0].content.parts[0].text;
                 console.log('Summarize Success.');
 
                 // Increment summariesToday for the user
                 await User.findByIdAndUpdate(req.user.id, { $inc: { summariesToday: 1 } });
 
-                return res.json({ summary: response.data.candidates[0].content.parts[0].text });
+                return res.json({ summary: summaryText });
             } else {
                 console.error('Gemini Summarize Response:', JSON.stringify(response.data));
                 throw new Error('Empty Gemini response');

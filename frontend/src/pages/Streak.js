@@ -20,6 +20,7 @@ import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import MiniLeaderboard from '../components/MiniLeaderboard';
 import DailyGoals from '../components/DailyGoals';
+import { API_BASE_URL } from '../apiConfig';
 
 const Streak = () => {
     const navigate = useNavigate();
@@ -32,7 +33,7 @@ const Streak = () => {
             if (!token) return;
 
             try {
-                const res = await axios.get('http://127.0.0.1:5000/api/auth/me', {
+                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': token }
                 });
                 setUser(res.data);

@@ -20,6 +20,7 @@ import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import MiniLeaderboard from '../components/MiniLeaderboard';
 import DailyGoals from '../components/DailyGoals';
+import { API_BASE_URL } from '../apiConfig';
 
 const CommunityHub = () => {
     const [posts, setPosts] = useState([]);
@@ -49,7 +50,7 @@ const CommunityHub = () => {
 
     const fetchUserCount = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/auth/users/count');
+            const res = await axios.get(`${API_BASE_URL}/api/auth/users/count`);
             setUserCount(res.data.count || 2); // Fallback to 2 as confirmed in DB
         } catch (err) {
             console.error("Error fetching user count:", err);
@@ -61,7 +62,7 @@ const CommunityHub = () => {
         setLoading(true);
         try {
             const courseQuery = selectedCourse === 'All' ? '' : `?courseId=${selectedCourse.toLowerCase()}`;
-            const res = await axios.get(`http://localhost:5000/api/community${courseQuery}`);
+            const res = await axios.get(`${API_BASE_URL}/api/community${courseQuery}`);
             setPosts(res.data);
         } catch (err) {
             console.error("Error fetching posts:", err);
@@ -74,7 +75,7 @@ const CommunityHub = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            const res = await axios.get('http://127.0.0.1:5000/api/auth/me', {
+            const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                 headers: { 'x-auth-token': token }
             });
             setUser(res.data);
@@ -98,7 +99,7 @@ const CommunityHub = () => {
         formData.append('caption', uploadCaption);
 
         try {
-            const res = await axios.post('http://127.0.0.1:5000/api/community', formData, {
+            const res = await axios.post(`${API_BASE_URL}/api/community`, formData, {
                 headers: {
                     'x-auth-token': token,
                     'Content-Type': 'multipart/form-data'
@@ -343,8 +344,7 @@ const PostCard = ({ post, currentUser, onUpdate }) => {
     const isPdf = post.fileType === 'pdf';
 
     // Normalize file URL for frontend (remove leading slash if needed, or point to full backend URL)
-    const backendUrl = "http://127.0.0.1:5000";
-    const mediaUrl = `${backendUrl}${post.fileUrl}`;
+    const mediaUrl = `${API_BASE_URL}${post.fileUrl}`;
     const token = localStorage.getItem('token');
 
     const isLiked = post.likes?.includes(currentUser?._id);
@@ -353,7 +353,7 @@ const PostCard = ({ post, currentUser, onUpdate }) => {
         if (!token || isLiking) return;
         setIsLiking(true);
         try {
-            const res = await axios.put(`${backendUrl}/api/community/like/${post._id}`, {}, {
+            const res = await axios.put(`${API_BASE_URL}/api/community/like/${post._id}`, {}, {
                 headers: { 'x-auth-token': token }
             });
             onUpdate(post._id, { likes: res.data });
@@ -369,7 +369,7 @@ const PostCard = ({ post, currentUser, onUpdate }) => {
         if (!token || !commentText.trim() || isCommenting) return;
         setIsCommenting(true);
         try {
-            const res = await axios.post(`${backendUrl}/api/community/comment/${post._id}`,
+            const res = await axios.post(`${API_BASE_URL}/api/community/comment/${post._id}`,
                 { text: commentText },
                 { headers: { 'x-auth-token': token } }
             );

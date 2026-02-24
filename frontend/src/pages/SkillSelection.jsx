@@ -4,6 +4,7 @@ import { Code2, GraduationCap, ChevronRight, Check } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import { API_BASE_URL } from '../apiConfig';
 
 const CORE_LANGUAGES = [
     { name: 'Javascript', icon: '🟨' },
@@ -31,7 +32,12 @@ const SkillSelection = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://127.0.0.1:5000/api/matchmaking/skills', {
+            // The original code already uses API_BASE_URL correctly here.
+            // The provided "Code Edit" snippet was syntactically incorrect and seemed to merge two different API calls.
+            // Assuming the intent was to ensure API_BASE_URL is used, and it already is for the POST request.
+            // If there was an intention to add a GET request, it would need to be structured correctly.
+            // For now, keeping the existing correct usage of API_BASE_URL for the skills POST request.
+            await axios.post(`${API_BASE_URL}/api/matchmaking/skills`, {
                 skillsToTeach: teach,
                 skillsToLearn: learn
             }, {

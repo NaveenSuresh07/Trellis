@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 
-const CORE_LANGUAGES = ['Javascript', 'HTML', 'C', 'Python'];
+const CORE_LANGUAGES = ['JavaScript', 'HTML', 'C', 'Python'];
 
 // @route   POST api/matchmaking/skills
 // @desc    Update user skills
@@ -15,12 +15,14 @@ router.post('/skills', auth, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        // Validate skills against core languages
-        const validTeach = (skillsToTeach || []).filter(s => CORE_LANGUAGES.includes(s));
-        const validLearn = (skillsToLearn || []).filter(s => CORE_LANGUAGES.includes(s));
+        // Normalize and Validate skills against core languages (Case-Insensitive check, but preserve display)
+        const normalize = (list) => (list || []).map(s => {
+            const found = CORE_LANGUAGES.find(core => core.toLowerCase() === s.toLowerCase());
+            return found || null;
+        }).filter(Boolean);
 
-        user.skillsToTeach = validTeach;
-        user.skillsToLearn = validLearn;
+        user.skillsToTeach = [...new Set(normalize(skillsToTeach))];
+        user.skillsToLearn = [...new Set(normalize(skillsToLearn))];
 
         await user.save();
         res.json(user);
@@ -38,33 +40,36 @@ router.get('/peers', auth, async (req, res) => {
         const currentUser = await User.findById(req.user.id);
         if (!currentUser) return res.status(404).json({ msg: 'User not found' });
 
-        // Logic: Find users who teach what I want to learn 
-        // OR users who want to learn what I can teach.
-
+        // LOGIC: Find users where User A's "Needs" intersect with Peer's "Expertise"
+        // ( Peer.skillsToTeach includes CurrentUser.skillsToLearn )
         const peers = await User.find({
             _id: { $ne: req.user.id }, // Exclude self
-            $or: [
-                { skillsToTeach: { $in: currentUser.skillsToLearn } },
-                { skillsToLearn: { $in: currentUser.skillsToTeach } }
-            ]
+            skillsToTeach: { $in: currentUser.skillsToLearn || [] }
         }).select('username email major skillsToTeach skillsToLearn xp streak selectedTitle');
 
-        // Simple scoring: count overlaps
         const scoredPeers = peers.map(peer => {
-            const canTeachMe = peer.skillsToTeach.filter(s => currentUser.skillsToLearn.includes(s));
-            const iCanTeachThem = peer.skillsToLearn.filter(s => currentUser.skillsToTeach.includes(s));
+            const canTeachMe = (peer.skillsToTeach || []).filter(s => (currentUser.skillsToLearn || []).includes(s));
+            const iCanTeachThem = (peer.skillsToLearn || []).filter(s => (currentUser.skillsToTeach || []).includes(s));
+
+            // A "Perfect Match" is when they teach what I need AND I teach what they need
+            const isPerfectMatch = canTeachMe.length > 0 && iCanTeachThem.length > 0;
 
             return {
                 ...peer._doc,
-                matchScore: canTeachMe.length + iCanTeachThem.length,
+                matchScore: canTeachMe.length,
+                isPerfectMatch,
                 overlapLearn: canTeachMe,
                 overlapTeach: iCanTeachThem
             };
-        }).sort((a, b) => b.matchScore - a.matchScore);
+        }).sort((a, b) => {
+            // Perfect matches first, then by match score (how much they can teach me)
+            if (a.isPerfectMatch !== b.isPerfectMatch) return b.isPerfectMatch ? 1 : -1;
+            return b.matchScore - a.matchScore;
+        });
 
         res.json(scoredPeers);
     } catch (err) {
-        console.error(err.message);
+        console.error("Matchmaking Error:", err.message);
         res.status(500).send('Server Error');
     }
 });

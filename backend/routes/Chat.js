@@ -4,6 +4,7 @@ const axios = require('axios');
 const auth = require('../middleware/auth');
 
 router.post('/', auth, async (req, res) => {
+    console.log('--- AI CHAT REQUEST RECEIVED ---');
     const { message, history } = req.body;
 
     if (!message) {
@@ -11,12 +12,21 @@ router.post('/', auth, async (req, res) => {
     }
 
     try {
-        console.log('Action: Calling Gemini 2.5 API (Chat/Axios)...');
+        const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
+        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
 
-        // Using v1beta and gemini-2.5-flash which were verified as working via axios
-        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-
+        // Create a compliant message list
         const contents = [];
+
+        // System instruction as the FIRST message (compatible fallback)
+        contents.push({
+            role: 'user',
+            parts: [{ text: "SYSTEM: You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging. Focus on study tips, explaining concepts simply, and platform support." }]
+        });
+        contents.push({
+            role: 'model',
+            parts: [{ text: "Understood! I am YIP. How can I help you today?" }]
+        });
 
         // Filter history to remove previous error messages
         if (history && Array.isArray(history)) {
@@ -31,7 +41,7 @@ router.post('/', auth, async (req, res) => {
                 });
         }
 
-        // Add the current message
+        // Add the current user message
         contents.push({
             role: 'user',
             parts: [{ text: message }]
@@ -42,11 +52,6 @@ router.post('/', auth, async (req, res) => {
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 800,
-            },
-            // Note: System instructions in v1beta/axios are sometimes tricky, 
-            // we'll keep it simple for now to ensure connectivity.
-            systemInstruction: {
-                parts: [{ text: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging. Focus on study tips, explaining concepts simply, and platform support." }]
             }
         }, {
             headers: { 'Content-Type': 'application/json' },

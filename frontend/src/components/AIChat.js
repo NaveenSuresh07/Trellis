@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Loader2, Sparkles, MinusCircle } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 import mascot from '../assets/Yip_head.png';
 
 const AIChat = () => {
@@ -50,7 +51,7 @@ const AIChat = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://127.0.0.1:5000/api/chat', {
+            const res = await axios.post(`${API_BASE_URL}/api/chat`, {
                 message: userMessage.content,
                 history: messages
             }, {

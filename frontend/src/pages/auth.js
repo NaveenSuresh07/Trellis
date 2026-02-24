@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Lottie from 'lottie-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 import { useNavigate } from 'react-router-dom';
 
 // Import your exact files
@@ -17,7 +18,7 @@ const Auth = () => {
         e.preventDefault();
         try {
             const endpoint = isLogin ? '/login' : '/register';
-            const res = await axios.post(`http://127.0.0.1:5000/api/auth${endpoint}`, formData);
+            const res = await axios.post(`${API_BASE_URL}/api/auth${endpoint}`, formData);
             if (res.data.user) {
                 navigate('/dashboard', { state: { user: res.data.user } });
             }

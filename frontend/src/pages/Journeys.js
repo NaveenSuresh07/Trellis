@@ -21,6 +21,7 @@ import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import MiniLeaderboard from '../components/MiniLeaderboard';
 import DailyGoals from '../components/DailyGoals';
+import { API_BASE_URL } from '../apiConfig';
 
 const Journeys = () => {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ const Journeys = () => {
             if (!token) return;
 
             try {
-                const res = await axios.get('http://localhost:5000/api/auth/me', {
+                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': token }
                 });
                 setUser(res.data);
@@ -175,7 +176,7 @@ const Journeys = () => {
                                     // Only update the active course on the backend, keep section/progress intact
                                     if (token) {
                                         try {
-                                            await axios.patch('http://localhost:5000/api/auth/progress',
+                                            await axios.patch(`${API_BASE_URL}/api/auth/progress`,
                                                 { currentCourse: selectedCourse },
                                                 { headers: { 'x-auth-token': token } }
                                             );
@@ -188,7 +189,7 @@ const Journeys = () => {
                                     // FRESH START: No existing progress, begin from scratch
                                     if (token) {
                                         try {
-                                            await axios.patch('http://localhost:5000/api/auth/progress',
+                                            await axios.patch(`${API_BASE_URL}/api/auth/progress`,
                                                 { currentCourse: selectedCourse, currentSectionId: 1, progress: 0 },
                                                 { headers: { 'x-auth-token': token } }
                                             );

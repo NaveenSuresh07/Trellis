@@ -16,6 +16,7 @@ import 'prismjs/components/prism-markup'; // for HTML
 import 'prismjs/themes/prism-tomorrow.css';
 import { courseData } from '../data/courses';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 
 const Lesson = () => {
     const { courseId, sectionId, lessonId } = useParams();
@@ -45,7 +46,7 @@ const Lesson = () => {
             const token = localStorage.getItem('token');
             if (!token) return;
             try {
-                const res = await axios.get('http://127.0.0.1:5000/api/auth/me', {
+                const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': token }
                 });
                 setUser(res.data);
@@ -113,7 +114,7 @@ const Lesson = () => {
 
         try {
             const isFirstClick = output === ""; // Simple heuristic: if output was empty, it was the first run
-            const res = await axios.patch('http://127.0.0.1:5000/api/auth/progress', {
+            const res = await axios.patch(`${API_BASE_URL}/api/auth/progress`, {
                 xpIncrement: 20,
                 currentCourse: courseId,
                 progress: newProgress,
@@ -169,7 +170,7 @@ const Lesson = () => {
         setShowSummaryModal(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://127.0.0.1:5000/api/summarize', {
+            const res = await axios.post(`${API_BASE_URL}/api/summarize`, {
                 text: lesson.content,
                 length: 'Short',
                 format: 'Bullets'

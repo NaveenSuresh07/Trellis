@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Medal, Crown, Zap, User, Star, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import Sidebar from '../components/Sidebar';
+import { API_BASE_URL } from '../apiConfig';
 
 const Leaderboard = () => {
     const [users, setUsers] = useState([]);
@@ -16,13 +17,13 @@ const Leaderboard = () => {
         setError(null);
         try {
             // Public fetch - doesn't need token
-            const usersRes = await axios.get('http://127.0.0.1:5000/api/auth/leaderboard');
+            const usersRes = await axios.get(`${API_BASE_URL}/api/auth/leaderboard`);
             setUsers(usersRes.data);
 
             // Private fetch - needs token
             const token = localStorage.getItem('token');
             if (token) {
-                const meRes = await axios.get('http://127.0.0.1:5000/api/auth/me', {
+                const meRes = await axios.get(`${API_BASE_URL}/api/auth/me`, {
                     headers: { 'x-auth-token': token }
                 });
                 setCurrentUser(meRes.data);

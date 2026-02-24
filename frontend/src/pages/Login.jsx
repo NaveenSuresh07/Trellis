@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, Lock, ChevronRight, Eye, EyeOff, Github, Chrome } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 import mascot from '../assets/trellis_mascot.png';
 
@@ -15,7 +16,7 @@ const Login = () => {
         e.preventDefault();
         try {
             const { email, password } = formData;
-            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', {
+            const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
                 email,
                 password
             });
@@ -104,13 +105,13 @@ const Login = () => {
                         <p className="text-slate-400 text-sm mb-4">Or sign in with</p>
                         <div className="flex gap-4 justify-center mb-8">
                             <button
-                                onClick={() => window.location.href = 'http://localhost:5000/api/auth/github'}
+                                onClick={() => window.location.href = `${API_BASE_URL}/api/auth/github`}
                                 className="p-4 bg-[#1e293b] border border-white/5 rounded-2xl hover:bg-white/5 transition-all active:scale-95"
                             >
                                 <Github className="w-5 h-5 text-white" />
                             </button>
                             <button
-                                onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
+                                onClick={() => window.location.href = `${API_BASE_URL}/api/auth/google`}
                                 className="p-4 bg-[#1e293b] border border-white/5 rounded-2xl hover:bg-white/5 transition-all active:scale-95"
                             >
                                 <Chrome className="w-5 h-5 text-[#4285F4]" />

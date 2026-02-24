@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import axios from 'axios';
+import { API_BASE_URL } from '../apiConfig';
 
 const Summarizer = () => {
     const [text, setText] = useState('');
@@ -72,7 +73,7 @@ const Summarizer = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://127.0.0.1:5000/api/summarize', formData, {
+            const res = await axios.post(`${API_BASE_URL}/api/summarize`, formData, {
                 headers: {
                     'x-auth-token': token,
                     'Content-Type': 'multipart/form-data'
