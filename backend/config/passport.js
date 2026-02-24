@@ -10,10 +10,15 @@ module.exports = function (passport) {
 
     console.log(`[AUTH DEBUG] Initializing Google Strategy with ID: ${gClientID.substring(0, 10)}...${gClientID.substring(gClientID.length - 5)}`);
 
+    const backendURL = process.env.BACKEND_URL || '';
+    const googleCallback = backendURL
+        ? `${backendURL}/api/auth/google/callback`
+        : '/api/auth/google/callback';
+
     passport.use(new GoogleStrategy({
         clientID: gClientID || 'PLACEHOLDER',
         clientSecret: gClientSecret || 'PLACEHOLDER',
-        callbackURL: '/api/auth/google/callback'
+        callbackURL: googleCallback
     }, async (accessToken, refreshToken, profile, done) => {
         const newUser = {
             googleId: profile.id,
@@ -43,11 +48,15 @@ module.exports = function (passport) {
         }
     }));
 
+    const githubCallback = backendURL
+        ? `${backendURL}/api/auth/github/callback`
+        : '/api/auth/github/callback';
+
     // GitHub Strategy
     passport.use(new GitHubStrategy({
         clientID: process.env.GITHUB_CLIENT_ID || 'PLACEHOLDER',
         clientSecret: process.env.GITHUB_CLIENT_SECRET || 'PLACEHOLDER',
-        callbackURL: '/api/auth/github/callback'
+        callbackURL: githubCallback
     }, async (accessToken, refreshToken, profile, done) => {
         const newUser = {
             githubId: profile.id,
