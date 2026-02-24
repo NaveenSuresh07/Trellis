@@ -9,6 +9,9 @@ require('./config/passport')(passport);
 
 const app = express();
 
+// Trust Proxy (Essential for OAuth behind Render/Vercel proxies)
+app.set('trust proxy', 1);
+
 // Middlewares
 const allowedOrigins = [
     'http://localhost:3000',
