@@ -10,7 +10,7 @@ module.exports = function (passport) {
 
     console.log(`[AUTH DEBUG] Initializing Google Strategy with ID: ${gClientID.substring(0, 10)}...${gClientID.substring(gClientID.length - 5)}`);
 
-    const backendURL = process.env.BACKEND_URL || '';
+    const backendURL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
     const googleCallback = backendURL
         ? `${backendURL}/api/auth/google/callback`
         : '/api/auth/google/callback';
