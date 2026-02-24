@@ -1,0 +1,99 @@
+[
+  {
+    "_id": "6991fc5559ae5cd82f4c0cba",
+    "username": "navspective007",
+    "email": "navspective007@gmail.com",
+    "password": "$2b$10$675eIyh8tn2AwVFD2kfQGuBuSUhee922JQ/mcYoi6mDB9lTHzDKd2",
+    "skillsToLearn": [],
+    "skillsToTeach": [],
+    "currentCourse": "javascript",
+    "progress": 1,
+    "notes": [],
+    "createdAt": "2026-02-15T17:03:17.779Z",
+    "updatedAt": "2026-02-21T18:50:39.565Z",
+    "__v": 3,
+    "currentSectionId": 1,
+    "enrolledJourneys": [
+      {
+        "courseId": "General E-Learning",
+        "currentSectionId": 1,
+        "progress": 1,
+        "lastAccessed": "2026-02-21T18:38:53.435Z",
+        "_id": "6999fbbd315120f8729e043f"
+      },
+      {
+        "courseId": "python",
+        "currentSectionId": 1,
+        "progress": 1,
+        "lastAccessed": "2026-02-21T18:50:11.282Z",
+        "_id": "6999fe50315120f8729e0457"
+      },
+      {
+        "courseId": "javascript",
+        "currentSectionId": 1,
+        "progress": 1,
+        "lastAccessed": "2026-02-21T18:50:39.563Z",
+        "_id": "6999fe74315120f8729e0481"
+      }
+    ],
+    "exercisesCompletedToday": 5,
+    "firstTrySolves": 0,
+    "lastActivity": "2026-02-21T18:50:39.563Z",
+    "streak": 0,
+    "xp": 60,
+    "unlockedTitles": [
+      "Yip's Recruit",
+      "Flash Bloomer"
+    ]
+  },
+  {
+    "_id": "699b2705db2ad2dce293aad1",
+    "username": "Naveen suresh",
+    "email": "naveensuresh.07ns@gmail.com",
+    "googleId": "117792792330800856918",
+    "skillsToLearn": [],
+    "skillsToTeach": [],
+    "currentSectionId": 2,
+    "progress": 0,
+    "streak": 2,
+    "xp": 620,
+    "exercisesCompletedToday": 8,
+    "firstTrySolves": 6,
+    "enrolledJourneys": [
+      {
+        "courseId": "javascript",
+        "currentSectionId": 2,
+        "progress": 0,
+        "lastAccessed": "2026-02-23T19:19:12.873Z",
+        "_id": "699c988c82717ea9cab4d62c"
+      },
+      {
+        "courseId": "html",
+        "currentSectionId": 1,
+        "progress": 0,
+        "_id": "699d9f0766a30bdca4494666",
+        "lastAccessed": "2026-02-24T12:52:23.424Z"
+      }
+    ],
+    "lastActivity": "2026-02-24T16:04:45.148Z",
+    "notes": [],
+    "createdAt": "2026-02-22T15:55:49.984Z",
+    "updatedAt": "2026-02-24T16:04:45.370Z",
+    "__v": 1,
+    "currentCourse": "javascript",
+    "activityDays": [
+      "2026-02-24",
+      "2026-02-23"
+    ],
+    "xpToday": 460,
+    "sectionsMasteredToday": 3,
+    "unlockedTitles": [
+      "Yip's Recruit",
+      "Trellis Voyager",
+      "Consistency Vine",
+      "Flash Bloomer",
+      "Trellis Master"
+    ],
+    "selectedTitle": "Trellis Master"
+  }
+]

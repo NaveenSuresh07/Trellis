@@ -1,90 +1,50 @@
-require('dotenv').config();
+console.log('>>> SERVER.JS STARTING <<<');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const passport = require('passport');
+const path = require('path');
+require('dotenv').config();
+require('./config/passport')(passport);
 
 const app = express();
 
-// Middleware
+// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
+// Import Routes
+const authRoutes = require('./routes/Auth');
+const summarizeRoutes = require('./routes/Summarize');
+const chatRoutes = require('./routes/Chat');
+const matchmakingRoutes = require('./routes/Matchmaking');
+const communityRoutes = require('./routes/Community');
 
-const MONGO_URI ='mongodb+srv://Naveensuresh:Minnumol%401602@cluster0.gsngyjn.mongodb.net/?appName=Cluster0'
-const connectDB = async () => {
-    try {
-        if (mongoose.connection.readyState === 0) {
-            await mongoose.connect(MONGO_URI);
-            console.log("✅ Trellis DB Connected for Naveen's CSE Project");
-        }
-    } catch (err) {
-        console.error("❌ DB Connection Failed!");
-        console.error("Error Detail:", err.message);
-    }
-};
+// Use Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/summarize', summarizeRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/matchmaking', matchmakingRoutes);
+app.use('/api/community', communityRoutes);
 
-connectDB();
+// Static Uploads Folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 2. DATA MODELS
-const UserSchema = new mongoose.Schema({
-    username: String,
-    email: { type: String, unique: true },
-    interests: [String],
-    notes: [{ text: String, summary: String, date: { type: Date, default: Date.now } }]
-});
-
-const User = mongoose.model('User', UserSchema);
-
-// 3. API ROUTES
-
-// Check if Backend is live
+// Base Route
 app.get('/', (req, res) => {
-    res.send('Trellis Backend is Live and Ready for CSE Presentation');
+    res.send('Trellis MERN Server is Operational 🚀');
 });
 
-// Register User
-app.post('/api/register', async (req, res) => {
-    try {
-        const { username, email, interests } = req.body;
-        let user = await User.findOne({ email });
-        if (!user) {
-            user = new User({ username, email, interests });
-            await user.save();
-        }
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// AI Summarizer Logic (Simulated for 50% Milestone)
-app.post('/api/summarize', async (req, res) => {
-    try {
-        const { text, userId } = req.body;
-        const summary = text.split(' ').slice(0, 10).join(' ') + "...";
-        
-        const user = await User.findById(userId);
-        user.notes.push({ text, summary });
-        await user.save();
-        
-        res.json({ summary });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Get Community Feed
-app.get('/api/notes', async (req, res) => {
-    try {
-        const users = await User.find({}, 'username notes');
-        res.json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 4. SERVER INITIALIZATION
+// MongoDB Connection
 const PORT = process.env.PORT || 5000;
-app.listen(5000, () => {
-    console.log(`🚀 Trellis Server running on http://localhost:5000`);
-});
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log('✅ Success: Connected to MongoDB Cluster0');
+        app.listen(PORT, () => console.log(`🚀 Trellis Server running on port ${PORT}`));
+    })
+    .catch(err => {
+        console.error('❌ Connection Error:', err.message);
+    });

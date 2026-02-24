@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "trellis",
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

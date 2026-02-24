@@ -1,66 +1,56 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Onboarding from './pages/Onboarding';
+import OnboardingStep2 from './pages/OnboardingStep2';
+import OnboardingStep3 from './pages/OnboardingStep3';
+import OnboardingStep4 from './pages/OnboardingStep4';
+import OnboardingStep5 from './pages/OnboardingStep5';
+import OnboardingStep6 from './pages/OnboardingStep6';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Streak from './pages/Streak';
+import Journeys from './pages/Journeys';
+import Sections from './pages/Sections';
+import Lesson from './pages/Lesson';
+import Summarizer from './pages/Summarizer';
+import SkillSelection from './pages/SkillSelection';
+import Nexus from './pages/Nexus';
+import Leaderboard from './pages/Leaderboard';
+import Settings from './pages/Settings';
+import CommunityHub from './pages/CommunityHub';
+
+import AIChat from './components/AIChat';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [interest, setInterest] = useState("");
-  const [note, setNote] = useState("");
-
-  const login = async () => {
-    try {
-      const res = await axios.post('http://localhost:5000/api/register', {
-        username: email.split('@')[0],
-        email: email,
-        interests: [interest]
-      });
-      setUser(res.data);
-      alert("Joined Trellis!");
-    } catch (err) {
-      console.error(err);
-      alert("Backend not connected, but UI is working!");
-    }
-  };
-
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', textAlign: 'center' }}>
-      <h1 style={{ color: '#2ecc71' }}>Trellis 🌿</h1>
-      <p>Community-Based Learning Platform</p>
-      
-      {!user ? (
-        <div style={{ marginTop: '20px' }}>
-          <input 
-            style={{ padding: '10px', margin: '5px' }} 
-            placeholder="Email" 
-            onChange={e => setEmail(e.target.value)} 
-          />
-          <br />
-          <input 
-            style={{ padding: '10px', margin: '5px' }} 
-            placeholder="Topic (e.g. ECE)" 
-            onChange={e => setInterest(e.target.value)} 
-          />
-          <br />
-          <button 
-            style={{ padding: '10px 20px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-            onClick={login}
-          >
-            Join Community
-          </button>
-        </div>
-      ) : (
-        <div style={{ marginTop: '20px' }}>
-          <h2>Welcome, {user.username}</h2>
-          <textarea 
-            style={{ width: '80%', height: '100px', padding: '10px' }} 
-            placeholder="Paste notes here..." 
-            onChange={e => setNote(e.target.value)} 
-          />
-          <br />
-          <button style={{ padding: '10px', marginTop: '10px' }}>AI Summarize (Demo)</button>
-        </div>
-      )}
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Onboarding />} />
+        <Route path="/register-step2" element={<OnboardingStep2 />} />
+        <Route path="/register-step3" element={<OnboardingStep3 />} />
+        <Route path="/register-step4" element={<OnboardingStep4 />} />
+        <Route path="/register-step5" element={<OnboardingStep5 />} />
+        <Route path="/register-step6" element={<OnboardingStep6 />} />
+        <Route path="/register-step7" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/streak" element={<Streak />} />
+        <Route path="/journeys" element={<Journeys />} />
+        <Route path="/sections" element={<Sections />} />
+        <Route path="/lesson/:courseId/:sectionId/:lessonId" element={<Lesson />} />
+        <Route path="/summarizer" element={<Summarizer />} />
+        <Route path="/select-skills" element={<SkillSelection />} />
+        <Route path="/nexus" element={<Nexus />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/community" element={<CommunityHub />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+      <AIChat />
+    </Router>
   );
 }
 

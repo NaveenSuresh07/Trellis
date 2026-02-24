@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
+body {
+    margin: 0;
+    background-color: #0F172A;
+    /* Your exact dark theme color */
+    color: #FFFFFF;
+    /* Strictly white font */
+    font-family: 'Varela Round', 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+
+/* The Glass Card logic from your wireframe */
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    padding: 14px 16px;
+    width: 100%;
+    outline: none;
+}
+
+/* The Blue Button from your Pencil sketch */
+.btn-blue {
+    background: #3b82f6;
+    color: white;
+    font-weight: 800;
+    padding: 16px;
+    border-radius: 9999px;
+    width: 100%;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.btn-blue:hover {
+    background: #2563eb;
+}
