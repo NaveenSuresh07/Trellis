@@ -57,9 +57,9 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
         // Gemini AI Summarization via axios/v1beta
         try {
             const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
-            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-            console.log(`Action: Running Axios Summarize (gemini-flash-latest)`);
+            console.log(`Action: Running Gemini Summarize (gemini-1.5-flash)`);
 
             const formatInstruction = format === 'Bullets'
                 ? 'Use ONLY bullet points for the summary.'
