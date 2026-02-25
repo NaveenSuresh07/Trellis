@@ -12,7 +12,7 @@ module.exports = function (passport) {
 
     let backendURL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
 
-    // Force HTTPS if backendURL is provided
+    // Force HTTPS if backendURL is provided to avoid protocol mismatch in production
     if (backendURL && !backendURL.startsWith('http')) {
         backendURL = `https://${backendURL}`;
     } else if (backendURL.startsWith('http://')) {
@@ -22,6 +22,13 @@ module.exports = function (passport) {
     const googleCallback = backendURL
         ? `${backendURL}/api/auth/google/callback`
         : '/api/auth/google/callback';
+
+    const githubCallback = backendURL
+        ? `${backendURL}/api/auth/github/callback`
+        : '/api/auth/github/callback';
+
+    console.log(`[AUTH DEBUG] Google Callback: ${googleCallback}`);
+    console.log(`[AUTH DEBUG] GitHub Callback: ${githubCallback}`);
 
     passport.use(new GoogleStrategy({
         clientID: gClientID || 'PLACEHOLDER',
@@ -55,10 +62,6 @@ module.exports = function (passport) {
             done(err, null);
         }
     }));
-
-    const githubCallback = backendURL
-        ? `${backendURL}/api/auth/github/callback`
-        : '/api/auth/github/callback';
 
     // GitHub Strategy
     passport.use(new GitHubStrategy({
