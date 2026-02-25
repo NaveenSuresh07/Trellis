@@ -10,7 +10,15 @@ module.exports = function (passport) {
 
     console.log(`[AUTH DEBUG] Initializing Google Strategy with ID: ${gClientID.substring(0, 10)}...${gClientID.substring(gClientID.length - 5)}`);
 
-    const backendURL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+    let backendURL = (process.env.BACKEND_URL || '').replace(/\/$/, '');
+
+    // Force HTTPS if backendURL is provided
+    if (backendURL && !backendURL.startsWith('http')) {
+        backendURL = `https://${backendURL}`;
+    } else if (backendURL.startsWith('http://')) {
+        backendURL = backendURL.replace('http://', 'https://');
+    }
+
     const googleCallback = backendURL
         ? `${backendURL}/api/auth/google/callback`
         : '/api/auth/google/callback';
