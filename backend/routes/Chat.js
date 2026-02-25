@@ -19,9 +19,9 @@ router.post('/', auth, async (req, res) => {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Using a more resilient model name or fallback
+        // Using confirmed model names from diagnostic
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-flash-latest",
             systemInstruction: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging. Focus on study tips, concepts, and support."
         });
 
@@ -66,8 +66,8 @@ router.post('/', auth, async (req, res) => {
             const response = await result.response;
             reply = response.text();
         } catch (initialErr) {
-            console.warn('[AI RECOVERY] Flash failed, trying gemini-pro...', initialErr.message);
-            const proModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+            console.warn('[AI RECOVERY] Flash failed, trying gemini-pro-latest...', initialErr.message);
+            const proModel = genAI.getGenerativeModel({ model: "gemini-pro-latest" });
             const proResult = await proModel.generateContent(message);
             const proResponse = await proResult.response;
             reply = proResponse.text();

@@ -63,9 +63,9 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
 
             const { GoogleGenerativeAI } = require('@google/generative-ai');
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-            console.log(`Action: Running SDK Summarize (gemini-1.5-flash)`);
+            console.log(`Action: Running SDK Summarize (gemini-flash-latest)`);
 
             const formatInstruction = format === 'Bullets'
                 ? 'Use ONLY bullet points for the summary.'
@@ -91,8 +91,8 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
                 const response = await result.response;
                 summaryText = response.text();
             } catch (initialErr) {
-                console.warn('[AI RECOVERY] Flash failed, trying gemini-pro...', initialErr.message);
-                const proModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+                console.warn('[AI RECOVERY] Flash failed, trying gemini-pro-latest...', initialErr.message);
+                const proModel = genAI.getGenerativeModel({ model: "gemini-pro-latest" });
                 const proResult = await proModel.generateContent(prompt);
                 const proResponse = await proResult.response;
                 summaryText = proResponse.text();
