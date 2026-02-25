@@ -85,9 +85,18 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
                 ${finalContent.substring(0, 30000)}
             `;
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const summaryText = response.text();
+            let summaryText = "";
+            try {
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                summaryText = response.text();
+            } catch (initialErr) {
+                console.warn('[AI RECOVERY] Flash failed, trying gemini-pro...', initialErr.message);
+                const proModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+                const proResult = await proModel.generateContent(prompt);
+                const proResponse = await proResult.response;
+                summaryText = proResponse.text();
+            }
 
             if (summaryText) {
                 console.log('Summarize Success.');
