@@ -15,74 +15,56 @@ router.post('/', auth, async (req, res) => {
         const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
         const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-        // Create a compliant message list with alternating roles
-        // Rule: Must start with User, and alternate User -> Model -> User...
-        const contents = [];
+        // 1. Start with System Context (User) and Acknowledgement (Model)
+        const contents = [
+            { role: 'user', parts: [{ text: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging." }] },
+            { role: 'model', parts: [{ text: "I am YIP! Ready to help you crush your study goals." }] }
+        ];
 
-        // 1. Initial User Context (System Instruction)
-        contents.push({
-            role: 'user',
-            parts: [{ text: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging. Focus on study tips, concepts, and support." }]
-        });
-
-        // 2. Initial Model Acknowledgement
-        contents.push({
-            role: 'model',
-            parts: [{ text: "I am YIP! Ready to help you crush your study goals." }]
-        });
-
-        // 3. Process History (Ensure it alternates after our starter pair)
+        // 2. Process history ensuring strict alternation (User -> Model -> User...)
         if (history && Array.isArray(history)) {
-            // Filter out errors and placeholders
             const cleanHistory = history.filter(msg =>
                 msg.content &&
                 !msg.content.includes("brain freeze") &&
-                !msg.content.includes("trouble connecting")
+                !msg.content.includes("trouble connecting") &&
+                msg.content !== "Hi! I'm YIP. Ready to crush some study goals today? How can I help?" // Skip greeting
             );
 
-            // We need the next role to be 'user' to follow the starter pair
-            let expectedRole = 'user';
+            let lastRole = 'model'; // The starter pair ends with model
 
-            cleanHistory.slice(-8).forEach(msg => {
-                const role = msg.role === 'user' ? 'user' : 'model';
-                if (role === expectedRole) {
+            cleanHistory.slice(-6).forEach(msg => {
+                const currentRole = (msg.role === 'user' || msg.role === 'user') ? 'user' : 'model';
+
+                // Only add if it alternates
+                if (currentRole !== lastRole) {
                     contents.push({
-                        role: role,
+                        role: currentRole,
                         parts: [{ text: msg.content }]
                     });
-                    // Toggle expected role
-                    expectedRole = expectedRole === 'user' ? 'model' : 'user';
+                    lastRole = currentRole;
                 }
             });
 
-            // If the last history message was a model response, the current user message will naturally be next.
-            // If the last was user, we might need a dummy model acknowledgement if Gemini is strict,
-            // but usually it's better to just ensure the FINAL message is user.
-            if (expectedRole === 'user') {
-                // Continue naturally
-            } else {
-                // Last was user, add a placeholder model reply so the current message is valid
+            // 3. Ensure the NEXT added message (current user input) follows a MODEL role
+            if (lastRole === 'user') {
                 contents.push({
                     role: 'model',
-                    parts: [{ text: "I'm listening." }]
+                    parts: [{ text: "I see. Go on." }]
                 });
             }
         }
 
-        // 4. Final Current User Message (Must be User)
+        // 4. Current user message (Must follow Model)
         contents.push({
             role: 'user',
             parts: [{ text: message }]
         });
 
-        console.log(`[AI DEBUG] Sending ${contents.length} messages to Gemini...`);
+        console.log(`[AI DEBUG] Sending ${contents.length} messages...`);
 
         const response = await axios.post(GEMINI_URL, {
-            contents: contents,
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 800,
-            }
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
         }, {
             headers: { 'Content-Type': 'application/json' },
             timeout: 20000
@@ -93,8 +75,7 @@ router.post('/', auth, async (req, res) => {
             console.log('--- AI SUCCESS ---');
             return res.json({ reply });
         } else {
-            console.error('Gemini Unexpected Response:', JSON.stringify(response.data));
-            throw new Error('Invalid Gemini response structure');
+            throw new Error('Empty Gemini response');
         }
 
     } catch (err) {
