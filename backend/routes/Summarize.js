@@ -54,12 +54,18 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
             return res.status(400).json({ msg: 'Document is too short or empty.' });
         }
 
-        // Gemini AI Summarization via axios/v1beta
+        // Gemini AI Summarization via SDK
         try {
-            const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
-            const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+            if (!apiKey) {
+                return res.status(400).json({ msg: 'API Key missing on server.' });
+            }
 
-            console.log(`Action: Running Gemini Summarize (gemini-1.5-flash)`);
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            console.log(`Action: Running SDK Summarize (gemini-1.5-flash)`);
 
             const formatInstruction = format === 'Bullets'
                 ? 'Use ONLY bullet points for the summary.'
@@ -70,39 +76,28 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
                 : '';
 
             const prompt = `
-                I want a ${length} summary of these notes.
-                ${formatInstruction}
-                ${languageInstruction}
+                Summarize the following notes. 
+                Goal: ${length} length summary.
+                Format: ${formatInstruction}
+                Language: ${languageInstruction}
                 
-                NOTES TO SUMMARIZE:
+                NOTES:
                 ${finalContent.substring(0, 30000)}
             `;
 
-            const response = await axios.post(GEMINI_URL, {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048
-                }
-            }, {
-                headers: { 'Content-Type': 'application/json' },
-                timeout: 30000
-            });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const summaryText = response.text();
 
-            if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                const summaryText = response.data.candidates[0].content.parts[0].text;
+            if (summaryText) {
                 console.log('Summarize Success.');
-
-                // Increment summariesToday for the user
                 await User.findByIdAndUpdate(req.user.id, { $inc: { summariesToday: 1 } });
-
                 return res.json({ summary: summaryText });
             } else {
-                console.error('Gemini Summarize Response:', JSON.stringify(response.data));
-                throw new Error('Empty Gemini response');
+                throw new Error('Empty SDK response');
             }
         } catch (apiErr) {
-            console.error('Gemini API Error:', apiErr.response?.data || apiErr.message);
+            console.error('Gemini SDK Error:', apiErr.message);
 
             // Fallback
             const sentences = finalContent.split(/[.!?]+\s+/).filter(s => s.trim().length > 15);

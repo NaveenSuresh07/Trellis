@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const auth = require('../middleware/auth');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 router.post('/', auth, async (req, res) => {
     console.log('--- AI CHAT REQUEST RECEIVED ---');
@@ -12,78 +12,68 @@ router.post('/', auth, async (req, res) => {
     }
 
     try {
-        const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
-        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+        if (!apiKey) {
+            console.error('[CHAT ERROR] GEMINI_API_KEY is missing');
+            return res.json({ reply: "I'm missing my API key on this server! Check your Render environment settings." });
+        }
 
-        // 1. Start with System Context (User) and Acknowledgement (Model)
-        const contents = [
-            { role: 'user', parts: [{ text: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging." }] },
-            { role: 'model', parts: [{ text: "I am YIP! Ready to help you crush your study goals." }] }
-        ];
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            systemInstruction: "You are YIP, the friendly mascot of the Trellis study platform. Keep your answers brief, helpful, and encouraging. Focus on study tips, concepts, and support."
+        });
 
-        // 2. Process history ensuring strict alternation (User -> Model -> User...)
+        // Map history to SDK format
+        const chatHistory = [];
         if (history && Array.isArray(history)) {
             const cleanHistory = history.filter(msg =>
                 msg.content &&
                 !msg.content.includes("brain freeze") &&
                 !msg.content.includes("trouble connecting") &&
-                msg.content !== "Hi! I'm YIP. Ready to crush some study goals today? How can I help?" // Skip greeting
+                msg.content !== "Hi! I'm YIP. Ready to crush some study goals today? How can I help?"
             );
 
-            let lastRole = 'model'; // The starter pair ends with model
-
-            cleanHistory.slice(-6).forEach(msg => {
-                const currentRole = (msg.role === 'user' || msg.role === 'user') ? 'user' : 'model';
-
-                // Only add if it alternates
-                if (currentRole !== lastRole) {
-                    contents.push({
-                        role: currentRole,
+            let lastRole = null;
+            cleanHistory.slice(-8).forEach(msg => {
+                const role = msg.role === 'user' ? 'user' : 'model';
+                if (role !== lastRole) {
+                    chatHistory.push({
+                        role: role,
                         parts: [{ text: msg.content }]
                     });
-                    lastRole = currentRole;
+                    lastRole = role;
                 }
             });
 
-            // 3. Ensure the NEXT added message (current user input) follows a MODEL role
+            // If history ends with 'user', we need to close it before sending the current message
             if (lastRole === 'user') {
-                contents.push({
+                chatHistory.push({
                     role: 'model',
-                    parts: [{ text: "I see. Go on." }]
+                    parts: [{ text: "Got it, go on." }]
                 });
             }
         }
 
-        // 4. Current user message (Must follow Model)
-        contents.push({
-            role: 'user',
-            parts: [{ text: message }]
+        const chat = model.startChat({
+            history: chatHistory,
+            generationConfig: {
+                maxOutputTokens: 800,
+                temperature: 0.7
+            }
         });
 
-        console.log(`[AI DEBUG] Sending ${contents.length} messages...`);
+        const result = await chat.sendMessage(message);
+        const response = await result.response;
+        const reply = response.text();
 
-        const response = await axios.post(GEMINI_URL, {
-            contents,
-            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-        }, {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 20000
-        });
-
-        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            const reply = response.data.candidates[0].content.parts[0].text;
-            console.log('--- AI SUCCESS ---');
-            return res.json({ reply });
-        } else {
-            throw new Error('Empty Gemini response');
-        }
+        console.log('--- AI SUCCESS ---');
+        return res.json({ reply });
 
     } catch (err) {
-        console.error('CHAT API ERROR:', err.response?.data || err.message);
-
-        // Fallback message if API fails
+        console.error('CHAT API ERROR:', err.message);
         return res.json({
-            reply: "I'm having a little trouble connecting to my AI brain right now, but I'm here! What else can I help with?"
+            reply: "I'm having a little trouble connecting to my AI brain right now. If you're on Render, make sure your GEMINI_API_KEY is correct!"
         });
     }
 });
