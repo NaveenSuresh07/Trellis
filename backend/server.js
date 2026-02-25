@@ -48,6 +48,7 @@ const chatRoutes = require('./routes/Chat');
 const matchmakingRoutes = require('./routes/Matchmaking');
 const communityRoutes = require('./routes/Community');
 const collaborationRoutes = require('./routes/collaboration');
+const diagnosticRoutes = require('./routes/Diagnostic');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
@@ -56,6 +57,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/matchmaking', matchmakingRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/collaboration', collaborationRoutes);
+app.use('/api/diag', diagnosticRoutes);
 
 // Static Uploads Folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
