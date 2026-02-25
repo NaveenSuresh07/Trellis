@@ -67,14 +67,16 @@ router.get('/users/count', async (req, res) => {
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login', session: false }), (req, res) => {
     const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
+    const frontendURL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    res.redirect(`${frontendURL}/dashboard?token=${token}`);
 });
 
 // GITHUB OAUTH
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 router.get('/github/callback', passport.authenticate('github', { failureRedirect: '/login', session: false }), (req, res) => {
     const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.redirect(`http://localhost:3000/dashboard?token=${token}`);
+    const frontendURL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    res.redirect(`${frontendURL}/dashboard?token=${token}`);
 });
 
 // REGISTER ROUTE
